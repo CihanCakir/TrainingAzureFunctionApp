@@ -1,9 +1,13 @@
 using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Storage;
+
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace FunctionApp
 {
@@ -37,5 +41,40 @@ namespace FunctionApp
 
             return response;
         }
+
+
+        [Function("attribute")]
+        [TableOutput("Products",Connection = "MyAzureStorage")]
+        public MultiOutputFunctionInfo AtttributeExecution([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post",Route ="attribute")] HttpRequestData req,
+        FunctionContext executionContext)
+        {
+
+            string myApi = Environment.GetEnvironmentVariable("MyApi");
+
+            var logger = executionContext.GetLogger("attribute");
+
+            logger.LogInformation("DI Servis Yazýs ý" + _service.Write());
+
+
+            logger.LogInformation("Enrionmet API VALUE " + myApi);
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+
+            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+
+            return new MultiOutputFunctionInfo()
+            {
+                Object = JsonConvert.DeserializeObject<dynamic>(new StreamReader(req.Body).ReadToEnd()),
+                HttpResponse = response
+            };
+        }
+    }
+
+    public class MultiOutputFunctionInfo
+    {
+        [QueueOutput("queueproduct", Connection = "MyAzureStorage")]
+        public dynamic Object { get; set; }
+
+        public HttpResponseData HttpResponse { get; set; }
     }
 }
