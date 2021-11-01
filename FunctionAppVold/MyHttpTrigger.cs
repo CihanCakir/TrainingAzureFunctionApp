@@ -14,9 +14,9 @@ namespace FunctionAppVold
 {
     public static class MyHttpTrigger
     {
-        [FunctionName("MyHttpTrigger")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
+        [FunctionName("lowbinding")]
+        public static async Task<IActionResult> Lowbinding(
+            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "Product/lowbinding")] HttpRequest req,
             ILogger log, 
             [Table("Products", Connection = "MyAzureStorage")] CloudTable cloudTable,
             [Queue("queueproduct",Connection = "MyAzureStorage")] CloudQueue cloudQueue)
@@ -37,6 +37,29 @@ namespace FunctionAppVold
             await cloudQueue.AddMessageAsync(cloudQueueMessage);
 
             return new OkObjectResult(product);
+        }
+
+
+
+        [FunctionName("fastbinding")]
+        [return:Table("Products", Connection = "MyAzureStorage")]
+        public static async Task<Product> Fastbinding(
+           [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "Product/fastbinding")] HttpRequest req,
+           ILogger log,
+         
+           [Queue("queueproduct", Connection = "MyAzureStorage")] CloudQueue cloudQueue)
+        {
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+
+            Product product = JsonConvert.DeserializeObject<Product>(requestBody);   
+
+            var productString = JsonConvert.SerializeObject(product);
+
+            CloudQueueMessage cloudQueueMessage = new CloudQueueMessage(productString);
+
+            await cloudQueue.AddMessageAsync(cloudQueueMessage);
+
+            return product;
         }
     }
 }
