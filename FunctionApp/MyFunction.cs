@@ -45,7 +45,8 @@ namespace FunctionApp
 
         [Function("attribute")]
         [TableOutput("Products",Connection = "MyAzureStorage")]
-        public MultiOutputFunctionInfo AtttributeExecution([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post",Route ="attribute")] HttpRequestData req,
+        public MyTableData AtttributeExecution([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post",Route ="attribute")] HttpRequestData req,
+        [TableInput("Products",Connection ="MyAzureStorage")] MyTableData tableInput,
         FunctionContext executionContext)
         {
 
@@ -62,19 +63,21 @@ namespace FunctionApp
 
             response.Headers.Add("Content-Type", "application/json; charset=utf-8");
 
-            return new MultiOutputFunctionInfo()
+            return new MyTableData()
             {
-                Object = JsonConvert.DeserializeObject<dynamic>(new StreamReader(req.Body).ReadToEnd()),
-                HttpResponse = response
+                PartitionKey = tableInput.PartitionKey,
+                RowKey = tableInput.RowKey,
+                Name = $"Output record with rowkey {tableInput.Name} created at {DateTime.Now}"
             };
         }
     }
 
-    public class MultiOutputFunctionInfo
+    public class MyTableData
     {
-        [QueueOutput("queueproduct", Connection = "MyAzureStorage")]
-        public dynamic Object { get; set; }
+        public string PartitionKey { get; set; }
 
-        public HttpResponseData HttpResponse { get; set; }
+        public string RowKey { get; set; }
+
+        public string Name { get; set; }
     }
 }
